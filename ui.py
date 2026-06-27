@@ -177,6 +177,14 @@ elif navigation == "CO-PO Mapping Generator":
     st.title("CO-PO Mapping Generator 📊")
     st.write("Paste your course syllabus, and AI will generate Course Outcomes and map them to Program Outcomes.")
     
+    with st.expander("ℹ️ What are the 12 standard NBA Program Outcomes (POs)?"):
+        st.markdown("""
+        **PO1:** Engineering Knowledge | **PO2:** Problem Analysis | **PO3:** Design/Development of Solutions  
+        **PO4:** Conduct Investigations | **PO5:** Modern Tool Usage | **PO6:** The Engineer and Society  
+        **PO7:** Environment and Sustainability | **PO8:** Ethics | **PO9:** Individual and Team Work  
+        **PO10:** Communication | **PO11:** Project Management | **PO12:** Life-long Learning
+        """)
+        
     syllabus = st.text_area("Paste Course Syllabus here:", height=250)
     
     if st.button("Generate Mappings", type="primary"):
