@@ -1,4 +1,6 @@
 import os
+import json
+import re
 import shutil
 import tempfile
 import streamlit as st
@@ -7,15 +9,17 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
-from app import get_qa_chain, get_sar_generation_chain, get_compliance_chain, get_copo_mapping_chain
+from app import get_qa_chain, get_sar_generation_chain, get_compliance_chain, get_copo_mapping_chain, get_dashboard_evaluation_chain
 
 st.set_page_config(page_title="NBA AI Copilot", page_icon="🎓", layout="wide")
 
-# --- Initialize Session State for Ephemeral DB ---
+# --- Initialize Session State for Ephemeral DB & Dashboard ---
 if "temp_retriever" not in st.session_state:
     st.session_state.temp_retriever = None
 if "temp_doc_count" not in st.session_state:
     st.session_state.temp_doc_count = 0
+if "dashboard_data" not in st.session_state:
+    st.session_state.dashboard_data = None
 
 # --- Sidebar Navigation ---
 st.sidebar.title("NBA AI Copilot 🎓")
@@ -37,13 +41,13 @@ if st.session_state.temp_doc_count > 0:
     if st.sidebar.button("🗑️ Clear Session Documents"):
         st.session_state.temp_retriever = None
         st.session_state.temp_doc_count = 0
+        st.session_state.dashboard_data = None
         st.rerun()
 
 uploaded_files = st.sidebar.file_uploader("Upload internal PDFs", type=["pdf"], accept_multiple_files=True)
 if uploaded_files:
     if st.sidebar.button("Process Documents for this Session"):
         with st.spinner("Processing files securely in-memory..."):
-            # Create a temporary directory to save files so PyPDFLoader can read them
             temp_dir = tempfile.mkdtemp()
             documents = []
             
@@ -56,22 +60,19 @@ if uploaded_files:
                     loader = PyPDFLoader(temp_path)
                     documents.extend(loader.load())
                 
-                # Split and Chunk
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                 chunks = text_splitter.split_documents(documents)
                 
-                # Create In-Memory Chroma DB (no persist_directory)
                 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
                 in_memory_db = Chroma.from_documents(chunks, embeddings)
                 
-                # Store retriever in session state
                 st.session_state.temp_retriever = in_memory_db.as_retriever(search_type="mmr", search_kwargs={'k': 4, 'fetch_k': 10})
                 st.session_state.temp_doc_count = len(uploaded_files)
+                st.session_state.dashboard_data = None # Reset dashboard on new upload
                 
                 st.sidebar.success("Documents processed successfully!")
                 
             finally:
-                # Clean up the physical files from the temporary directory immediately
                 shutil.rmtree(temp_dir)
                 st.rerun()
 
@@ -195,21 +196,57 @@ elif navigation == "CO-PO Mapping Generator":
 # ==========================================
 elif navigation == "Readiness Dashboard":
     st.title("Accreditation Readiness Dashboard 📈")
-    st.write("Overview of your NBA Accreditation status.")
+    st.write("Overview of your NBA Accreditation status based on live AI document evaluation.")
     
-    st.subheader("Criterion Readiness")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Criterion 1 (Vision/Mission)", "92%", "+2%")
-    col2.metric("Criterion 2 (Teaching-Learning)", "81%", "-5%")
-    col3.metric("Criterion 3 (CO-PO)", "75%", "Needs Improvement")
-    
-    col4, col5, col6 = st.columns(3)
-    col4.metric("Criterion 4 (Students)", "96%", "Excellent")
-    col5.metric("Criterion 5 (Faculty)", "60%", "Critical Action Required")
-    col6.metric("Overall Readiness", "81%", "Not Ready")
-    
-    st.divider()
-    st.subheader("Actionable Recommendations (Evidence Recommendation Engine)")
-    st.warning("To improve Criterion 3 (CO-PO): Upload missing Lab CO Attainment sheets.")
-    st.error("To improve Criterion 5 (Faculty): Upload Industry Consultancies and Patent details.")
-    st.success("Criterion 4 (Students) is well documented. No action needed.")
+    if not st.session_state.temp_retriever:
+        st.info("Upload your college documents in the sidebar to calculate your live dynamic readiness score.")
+    else:
+        if st.button("Calculate Live Readiness", type="primary"):
+            with st.spinner("Granite AI is evaluating your documents against NBA criteria... (This may take 15-30s)"):
+                try:
+                    chain = get_dashboard_evaluation_chain(temp_retriever=st.session_state.temp_retriever)
+                    raw_response = chain.invoke({"input": "all NBA criteria"})
+                    
+                    # Robust JSON extraction via regex (LLMs sometimes wrap JSON in markdown blocks)
+                    json_match = re.search(r'\{.*\}', raw_response, re.DOTALL)
+                    
+                    if json_match:
+                        st.session_state.dashboard_data = json.loads(json_match.group(0))
+                    else:
+                        st.error("Failed to parse AI JSON response. Fallback to mock data triggered.")
+                        st.session_state.dashboard_data = {
+                            "Criterion 1": {"score": 50, "feedback": "AI JSON Parse Error"},
+                            "Criterion 2": {"score": 50, "feedback": "AI JSON Parse Error"},
+                            "Criterion 3": {"score": 50, "feedback": "AI JSON Parse Error"},
+                            "Criterion 4": {"score": 50, "feedback": "AI JSON Parse Error"},
+                            "Criterion 5": {"score": 50, "feedback": "AI JSON Parse Error"},
+                            "Overall": 50
+                        }
+                except Exception as e:
+                    st.error(f"Evaluation Error: {e}")
+        
+        if st.session_state.dashboard_data:
+            data = st.session_state.dashboard_data
+            
+            st.subheader("Criterion Readiness")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Criterion 1 (Vision/Mission)", f"{data.get('Criterion 1', {}).get('score', 0)}%")
+            col2.metric("Criterion 2 (Teaching-Learning)", f"{data.get('Criterion 2', {}).get('score', 0)}%")
+            col3.metric("Criterion 3 (CO-PO)", f"{data.get('Criterion 3', {}).get('score', 0)}%")
+            
+            col4, col5, col6 = st.columns(3)
+            col4.metric("Criterion 4 (Students)", f"{data.get('Criterion 4', {}).get('score', 0)}%")
+            col5.metric("Criterion 5 (Faculty)", f"{data.get('Criterion 5', {}).get('score', 0)}%")
+            col6.metric("Overall Readiness", f"{data.get('Overall', 0)}%")
+            
+            st.divider()
+            st.subheader("Actionable Recommendations (Evidence Recommendation Engine)")
+            for crit in ["Criterion 1", "Criterion 2", "Criterion 3", "Criterion 4", "Criterion 5"]:
+                feedback = data.get(crit, {}).get('feedback', '')
+                score = data.get(crit, {}).get('score', 0)
+                if score < 70:
+                    st.error(f"**{crit}**: {feedback}")
+                elif score < 90:
+                    st.warning(f"**{crit}**: {feedback}")
+                else:
+                    st.success(f"**{crit}**: {feedback}")

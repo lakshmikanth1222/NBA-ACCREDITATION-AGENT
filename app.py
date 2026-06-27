@@ -40,7 +40,6 @@ def retrieve_dual_docs(query, base_retriever, temp_retriever=None):
     if temp_retriever:
         try:
             temp_docs = temp_retriever.invoke(query)
-            # Add a visual flag in the metadata so we know it came from the session
             for doc in temp_docs:
                 doc.metadata['source_type'] = 'User Upload (Ephemeral)'
             docs.extend(temp_docs)
@@ -139,3 +138,33 @@ def get_copo_mapping_chain():
     prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "Syllabus:\n{input}")])
     
     return prompt | llm | StrOutputParser()
+
+# ==========================================
+# 5. Dashboard Evaluation Chain
+# ==========================================
+def get_dashboard_evaluation_chain(temp_retriever=None):
+    llm = get_llm()
+    base_retriever = get_retriever(k=4)
+    
+    system_prompt = (
+        "You are an AI Accreditation Copilot. Evaluate the uploaded college documents against the NBA rules.\n"
+        "Generate a readiness score from 0 to 100 for each of the 5 criteria, based on how much evidence is provided.\n"
+        "IMPORTANT: You MUST output ONLY valid JSON. Do not write any markdown, markdown blocks, or conversational text. Output exactly this format:\n"
+        "{{\n"
+        "  \"Criterion 1\": {{\"score\": 90, \"feedback\": \"Good\"}},\n"
+        "  \"Criterion 2\": {{\"score\": 80, \"feedback\": \"Missing XYZ\"}},\n"
+        "  \"Criterion 3\": {{\"score\": 75, \"feedback\": \"...\"}},\n"
+        "  \"Criterion 4\": {{\"score\": 95, \"feedback\": \"...\"}},\n"
+        "  \"Criterion 5\": {{\"score\": 60, \"feedback\": \"...\"}},\n"
+        "  \"Overall\": 80\n"
+        "}}\n\n"
+        "Context:\n{context}"
+    )
+    prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "Evaluate readiness and return ONLY JSON for: {input}")])
+    
+    return (
+        RunnableParallel({"context": lambda x: retrieve_dual_docs(x["input"], base_retriever, temp_retriever), "input": lambda x: x["input"]})
+        | prompt 
+        | llm 
+        | StrOutputParser()
+    )
