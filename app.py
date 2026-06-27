@@ -81,19 +81,26 @@ def get_sar_generation_chain(temp_retriever=None):
     base_retriever = get_retriever(k=6)
     
     system_prompt = (
-        "You are an expert NBA Accreditation Consultant drafting an official Self Assessment Report (SAR).\n"
-        "You MUST base your entire report ONLY on the provided Context. Extract specific institution names, department names, exact statistics, and hard facts.\n"
-        "DO NOT output generic filler text or definitions of what NBA is. If data is missing, explicitly state 'Data not available in provided evidence'.\n\n"
+        "You are an expert Accreditation Consultant for the National Board of Accreditation (NBA) in India, which accredits engineering colleges.\n"
+        "CRITICAL WARNING: 'NBA' here means Engineering Accreditation, NOT the National Basketball Association. DO NOT write about basketball!\n"
+        "You MUST base your entire report ONLY on the provided Context. Extract specific institution names (e.g. Sir C.R. Reddy College), department names, exact statistics, and hard facts.\n"
+        "DO NOT output generic filler text. If data is missing, explicitly state 'Data not available in provided evidence'.\n\n"
         "Context:\n{context}"
     )
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt), 
-        ("human", "Draft the official, highly detailed NBA SAR section for: {input}\n\n"
-                  "Instructions:\n"
-                  "1. Use formal academic language appropriate for an accreditation body.\n"
-                  "2. Structure the report with professional NBA-style numbered sub-headings (e.g., 1.1, 1.2, etc.) appropriate for this criterion.\n"
-                  "3. You MUST extract and explicitly state real data from the context (e.g., college name, CSE department details, exact metrics, vision/mission statements).\n"
-                  "4. Do NOT output generic filler text explaining what NBA accreditation is.")
+        ("human", "Draft a highly professional, visually impactful NBA Accreditation SAR section for: {input}\n\n"
+                  "You MUST use this EXACT markdown structure to ensure it is visually impactful:\n\n"
+                  "## 🏫 Criterion Report: {input}\n\n"
+                  "### 📊 1. Core Data & Extracted Metrics\n"
+                  "- **Metric 1:** (Extract a specific hard fact/number from the context)\n"
+                  "- **Metric 2:** (Extract another specific hard fact/number)\n"
+                  "- **Metric 3:** (Extract another specific hard fact/number)\n\n"
+                  "### 📝 2. Detailed Academic Analysis\n"
+                  "(Write 1-2 paragraphs of detailed analysis based on the context. Use standard NBA sub-headings like 1.1, 1.2. Use **bold text** to highlight key college names or achievements.)\n\n"
+                  "### ✅ 3. Compliance Summary\n"
+                  "> **Overall Status:** (State if compliant based on evidence)\n"
+                  "> **Justification:** (Brief 1-sentence justification)")
     ])
     
     return (
