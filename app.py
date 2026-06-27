@@ -135,7 +135,10 @@ def get_copo_mapping_chain():
         "2. Map them to the standard 12 Program Outcomes (POs) and 2 Program Specific Outcomes (PSOs).\n"
         "3. Output the result as a Markdown table (Columns: CO, POs mapped, Justification).\n"
     )
-    prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "Syllabus:\n{input}")])
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt), 
+        ("human", "Here is the course syllabus:\n\n{input}\n\nBased on this syllabus, please generate 4-5 Course Outcomes (COs) and map them to the 12 Program Outcomes (POs) in a detailed Markdown table with justifications.")
+    ])
     
     return prompt | llm | StrOutputParser()
 
