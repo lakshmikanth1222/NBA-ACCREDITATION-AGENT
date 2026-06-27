@@ -1,0 +1,5 @@
+applications:
+  - name: nba-copilot
+    buildpack: python_buildpack
+    memory: 1G
+    command: streamlit run ui.py --server.port=$PORT --server.address=0.0.0.0
