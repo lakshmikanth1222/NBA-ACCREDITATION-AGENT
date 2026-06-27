@@ -130,18 +130,13 @@ def get_copo_mapping_chain():
     system_prompt = (
         "You are an expert in Outcome-Based Education (OBE).\n"
         "The user will provide a course syllabus. Your task is to:\n"
-        "1. Generate 4 Course Outcomes (COs).\n"
+        "1. Generate exactly 4 Course Outcomes (COs).\n"
         "2. Map them to the 12 Program Outcomes (POs).\n"
-        "3. Output the result EXACTLY as a Markdown table with proper line breaks.\n\n"
-        "Example Output Format:\n"
-        "| Course Outcome (CO) | Mapped POs | Justification |\n"
-        "|---|---|---|\n"
-        "| CO1: [Description] | PO1, PO2 | [Reason] |\n"
-        "| CO2: [Description] | PO2, PO3 | [Reason] |\n"
+        "3. Output the result EXACTLY as a Markdown table.\n"
     )
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt), 
-        ("human", "Here is the course syllabus:\n\n{input}\n\nGenerate the CO-PO mapping as a strict, properly formatted Markdown table.")
+        ("human", "Here is the course syllabus:\n\n{input}\n\nBased on this syllabus, generate the CO-PO mapping. You MUST output a Markdown table with EXACTLY these three columns:\n\n| Course Outcome (CO) | Mapped POs | Justification |\n|---|---|---|")
     ])
     
     return prompt | llm | StrOutputParser()
