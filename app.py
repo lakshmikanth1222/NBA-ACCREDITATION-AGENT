@@ -94,7 +94,19 @@ def get_sar_generation_chain(temp_retriever=None):
         "[Explain how this data satisfies NBA accreditation requirements based on the context]\n\n"
         "Context:\n{context}"
     )
-    prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "Generate SAR section for: {input}")])
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt), 
+        ("human", "Generate a detailed Self Assessment Report (SAR) for NBA Accreditation regarding: {input}\n\n"
+                  "You MUST use this EXACT markdown structure:\n"
+                  "## {input}\n"
+                  "### 1. Overview\n"
+                  "(Write summary here)\n\n"
+                  "### 2. Key Metrics & Data\n"
+                  "(Write 3-5 bullet points of data here)\n\n"
+                  "### 3. Compliance & Justification\n"
+                  "(Write compliance explanation here)\n\n"
+                  "Do NOT generate any tables or sprint plans. Write it as a professional text document.")
+    ])
     
     return (
         RunnableParallel({"context": lambda x: retrieve_dual_docs(x["input"], base_retriever, temp_retriever), "input": lambda x: x["input"]})
