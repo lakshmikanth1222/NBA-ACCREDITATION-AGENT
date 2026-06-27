@@ -81,31 +81,19 @@ def get_sar_generation_chain(temp_retriever=None):
     base_retriever = get_retriever(k=6)
     
     system_prompt = (
-        "You are an AI SAR (Self Assessment Report) Generator for NBA Accreditation.\n"
-        "Based on the following context retrieved from the college's internal files and NBA manuals, "
-        "draft the SAR section for the requested criterion.\n"
-        "You MUST strictly follow this exact format for every report:\n\n"
-        "## [Criterion Name]\n\n"
-        "### 1. Overview\n"
-        "[Write a professional summary paragraph based on the evidence]\n\n"
-        "### 2. Key Metrics & Data\n"
-        "[List 3-5 bullet points of hard data, statistics, or facts found in the context]\n\n"
-        "### 3. Compliance & Justification\n"
-        "[Explain how this data satisfies NBA accreditation requirements based on the context]\n\n"
+        "You are an expert NBA Accreditation Consultant drafting an official Self Assessment Report (SAR).\n"
+        "You MUST base your entire report ONLY on the provided Context. Extract specific institution names, department names, exact statistics, and hard facts.\n"
+        "DO NOT output generic filler text or definitions of what NBA is. If data is missing, explicitly state 'Data not available in provided evidence'.\n\n"
         "Context:\n{context}"
     )
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt), 
-        ("human", "Generate a detailed Self Assessment Report (SAR) for NBA Accreditation regarding: {input}\n\n"
-                  "You MUST use this EXACT markdown structure:\n"
-                  "## {input}\n"
-                  "### 1. Overview\n"
-                  "(Write summary here)\n\n"
-                  "### 2. Key Metrics & Data\n"
-                  "(Write 3-5 bullet points of data here)\n\n"
-                  "### 3. Compliance & Justification\n"
-                  "(Write compliance explanation here)\n\n"
-                  "Do NOT generate any tables or sprint plans. Write it as a professional text document.")
+        ("human", "Draft the official, highly detailed NBA SAR section for: {input}\n\n"
+                  "Instructions:\n"
+                  "1. Use formal academic language appropriate for an accreditation body.\n"
+                  "2. Structure the report with professional NBA-style numbered sub-headings (e.g., 1.1, 1.2, etc.) appropriate for this criterion.\n"
+                  "3. You MUST extract and explicitly state real data from the context (e.g., college name, CSE department details, exact metrics, vision/mission statements).\n"
+                  "4. Do NOT output generic filler text explaining what NBA accreditation is.")
     ])
     
     return (
