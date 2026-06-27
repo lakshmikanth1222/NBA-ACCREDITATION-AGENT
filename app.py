@@ -20,7 +20,7 @@ def get_llm():
         api_key=os.getenv("IBM_API_KEY"),
         params={
             "max_new_tokens": 8192,
-            "temperature": 0.1,
+            "temperature": 0.0,
         }
     )
 
@@ -84,7 +84,14 @@ def get_sar_generation_chain(temp_retriever=None):
         "You are an AI SAR (Self Assessment Report) Generator for NBA Accreditation.\n"
         "Based on the following context retrieved from the college's internal files and NBA manuals, "
         "draft the SAR section for the requested criterion.\n"
-        "Format it professionally in markdown, highlighting key metrics, faculty data, or outcomes found in the context.\n\n"
+        "You MUST strictly follow this exact format for every report:\n\n"
+        "## [Criterion Name]\n\n"
+        "### 1. Overview\n"
+        "[Write a professional summary paragraph based on the evidence]\n\n"
+        "### 2. Key Metrics & Data\n"
+        "[List 3-5 bullet points of hard data, statistics, or facts found in the context]\n\n"
+        "### 3. Compliance & Justification\n"
+        "[Explain how this data satisfies NBA accreditation requirements based on the context]\n\n"
         "Context:\n{context}"
     )
     prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "Generate SAR section for: {input}")])
