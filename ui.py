@@ -32,6 +32,13 @@ navigation = st.sidebar.radio(
 
 st.sidebar.divider()
 
+st.sidebar.header("Model Configuration")
+selected_model_name = st.sidebar.radio(
+    "Select LLM Model:",
+    ["IBM Granite (ibm/granite-8b-code-instruct)", "GPT-OSS 120B (openai/gpt-oss-120b)"]
+)
+model_provider = "groq" if "GPT-OSS" in selected_model_name else "ibm"
+
 # --- Ephemeral Document Management ---
 st.sidebar.header("College Documents (Session Only)")
 st.sidebar.write("Upload your college documents here. They will be processed in-memory and automatically deleted when you close this tab.")
@@ -101,7 +108,7 @@ if navigation == "Evidence Finder":
         with st.chat_message("assistant"):
             with st.spinner("Searching evidence..."):
                 try:
-                    chain = get_qa_chain(temp_retriever=st.session_state.temp_retriever)
+                    chain = get_qa_chain(temp_retriever=st.session_state.temp_retriever, model_provider=model_provider)
                     response = chain.invoke({"input": prompt})
                     answer = response.get("answer", "No answer found.")
                     context = response.get("context", [])
@@ -142,7 +149,7 @@ elif navigation == "AI SAR Generator":
     if st.button("Generate SAR Section", type="primary"):
         with st.spinner(f"Analyzing documents and generating {criterion}..."):
             try:
-                chain = get_sar_generation_chain(temp_retriever=st.session_state.temp_retriever)
+                chain = get_sar_generation_chain(temp_retriever=st.session_state.temp_retriever, model_provider=model_provider)
                 response = chain.invoke({"input": criterion})
                 answer = response.get("answer", "")
                 st.markdown(answer)
@@ -164,7 +171,7 @@ elif navigation == "Compliance Checker":
             
         with st.spinner("Running compliance audit..."):
             try:
-                chain = get_compliance_chain(temp_retriever=st.session_state.temp_retriever)
+                chain = get_compliance_chain(temp_retriever=st.session_state.temp_retriever, model_provider=model_provider)
                 response = chain.invoke({"input": query})
                 st.markdown(response.get("answer", ""))
             except Exception as e:
@@ -193,7 +200,7 @@ elif navigation == "CO-PO Mapping Generator":
         else:
             with st.spinner("Analyzing syllabus and generating mappings..."):
                 try:
-                    chain = get_copo_mapping_chain()
+                    chain = get_copo_mapping_chain(model_provider=model_provider)
                     response = chain.invoke({"input": syllabus})
                     st.markdown(response)
                 except Exception as e:
@@ -212,7 +219,7 @@ elif navigation == "Readiness Dashboard":
         if st.button("Calculate Live Readiness", type="primary"):
             with st.spinner("Granite AI is evaluating your documents against NBA criteria... (This may take 15-30s)"):
                 try:
-                    chain = get_dashboard_evaluation_chain(temp_retriever=st.session_state.temp_retriever)
+                    chain = get_dashboard_evaluation_chain(temp_retriever=st.session_state.temp_retriever, model_provider=model_provider)
                     raw_response = chain.invoke({"input": "all NBA criteria"})
                     
                     # Robust JSON extraction via regex (LLMs sometimes wrap JSON in markdown blocks)

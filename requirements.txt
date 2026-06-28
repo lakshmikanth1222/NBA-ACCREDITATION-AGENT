@@ -8,3 +8,4 @@ pypdf
 streamlit
 python-dotenv
 ibm-watsonx-ai
+langchain-groq

@@ -6,23 +6,31 @@ from langchain_ibm import ChatWatsonx
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
 CHROMA_DB_DIR = "chroma_db"
 
-def get_llm():
-    """Initializes and returns the IBM Watsonx Chat Model (Granite Instruct)."""
-    return ChatWatsonx(
-        model_id="ibm/granite-8b-code-instruct", 
-        url=os.getenv("IBM_URL", "https://us-south.ml.cloud.ibm.com"),
-        project_id=os.getenv("IBM_PROJECT_ID"),
-        api_key=os.getenv("IBM_API_KEY"),
-        params={
-            "max_new_tokens": 8192,
-            "temperature": 0.0,
-        }
-    )
+def get_llm(model_provider="ibm"):
+    if model_provider == "groq":
+        return ChatGroq(
+            model="openai/gpt-oss-120b",
+            api_key=os.getenv("GROQ_API_KEY"),
+            temperature=0.0
+        )
+    else:
+        """Initializes and returns the IBM Watsonx Chat Model (Granite Instruct)."""
+        return ChatWatsonx(
+            model_id="ibm/granite-8b-code-instruct", 
+            url=os.getenv("IBM_URL", "https://us-south.ml.cloud.ibm.com"),
+            project_id=os.getenv("IBM_PROJECT_ID"),
+            api_key=os.getenv("IBM_API_KEY"),
+            params={
+                "max_new_tokens": 8192,
+                "temperature": 0.0,
+            }
+        )
 
 def get_retriever(k=4):
     """Initializes the Chroma vector store and returns the base (permanent) retriever."""
@@ -53,8 +61,8 @@ def format_docs(docs):
 # ==========================================
 # 1. Evidence Finder (QA Chain)
 # ==========================================
-def get_qa_chain(temp_retriever=None):
-    llm = get_llm()
+def get_qa_chain(temp_retriever=None, model_provider="ibm"):
+    llm = get_llm(model_provider)
     base_retriever = get_retriever(k=4)
     
     system_prompt = (
@@ -76,8 +84,8 @@ def get_qa_chain(temp_retriever=None):
 # ==========================================
 # 2. AI SAR Generator Chain
 # ==========================================
-def get_sar_generation_chain(temp_retriever=None):
-    llm = get_llm()
+def get_sar_generation_chain(temp_retriever=None, model_provider="ibm"):
+    llm = get_llm(model_provider)
     base_retriever = get_retriever(k=6)
     
     system_prompt = (
@@ -109,8 +117,8 @@ def get_sar_generation_chain(temp_retriever=None):
 # ==========================================
 # 3. Compliance & Gap Checker Chain
 # ==========================================
-def get_compliance_chain(temp_retriever=None):
-    llm = get_llm()
+def get_compliance_chain(temp_retriever=None, model_provider="ibm"):
+    llm = get_llm(model_provider)
     base_retriever = get_retriever(k=5)
     
     system_prompt = (
@@ -133,8 +141,8 @@ def get_compliance_chain(temp_retriever=None):
 # ==========================================
 # 4. CO-PO Mapping Generator Chain
 # ==========================================
-def get_copo_mapping_chain():
-    llm = get_llm()
+def get_copo_mapping_chain(model_provider="ibm"):
+    llm = get_llm(model_provider)
     
     system_prompt = (
         "You are an expert in Outcome-Based Education (OBE).\n"
@@ -155,8 +163,8 @@ def get_copo_mapping_chain():
 # ==========================================
 # 5. Dashboard Evaluation Chain
 # ==========================================
-def get_dashboard_evaluation_chain(temp_retriever=None):
-    llm = get_llm()
+def get_dashboard_evaluation_chain(temp_retriever=None, model_provider="ibm"):
+    llm = get_llm(model_provider)
     base_retriever = get_retriever(k=4)
     
     system_prompt = (
